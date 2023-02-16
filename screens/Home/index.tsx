@@ -1,5 +1,10 @@
 import { StatusBar } from "expo-status-bar";
 import MapView from "react-native-maps";
+import {
+  LocationObject,
+  requestForegroundPermissionsAsync,
+  getCurrentPositionAsync,
+} from "expo-location";
 
 // Providers
 import { usePhantom } from "../../providers/wallet/PhantomContext";
@@ -20,9 +25,26 @@ import {
 
 //Utils
 import { RootTabScreenProps } from "../../types";
+import { useEffect, useState } from "react";
+import { Alert } from "react-native";
 
 export default function HomeScreen({ navigation }: RootTabScreenProps<"Home">) {
   const { disconnect, balance } = usePhantom();
+  const [location, setLocation] = useState<LocationObject | null>(null);
+
+  async function requestLocationPermissions() {
+    const { status } = await requestForegroundPermissionsAsync();
+    if (status === "granted") {
+      const location = await getCurrentPositionAsync();
+      setLocation(location);
+    } else {
+      Alert.alert("Permission to access location was denied");
+    }
+  }
+
+  useEffect(() => {
+    requestLocationPermissions();
+  }, []);
 
   return (
     <Container>
@@ -32,10 +54,10 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<"Home">) {
       <MapView
         style={{ flex: 1, width: "100%" }}
         initialRegion={{
-          latitude: 37.78825,
-          longitude: -122.4324,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitude: location?.coords.latitude || 0,
+          longitude: location?.coords.longitude || 0,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
         }}
       />
 
