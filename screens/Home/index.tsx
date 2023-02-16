@@ -1,9 +1,13 @@
 import { StatusBar } from "expo-status-bar";
 import MapView from "react-native-maps";
+import { useEffect, useRef, useState } from "react";
+import { Alert } from "react-native";
 import {
   LocationObject,
   requestForegroundPermissionsAsync,
   getCurrentPositionAsync,
+  watchPositionAsync,
+  LocationAccuracy,
 } from "expo-location";
 
 // Providers
@@ -25,11 +29,10 @@ import {
 
 //Utils
 import { RootTabScreenProps } from "../../types";
-import { useEffect, useState } from "react";
-import { Alert } from "react-native";
 
 export default function HomeScreen({ navigation }: RootTabScreenProps<"Home">) {
   const { disconnect, balance } = usePhantom();
+  const mapRef = useRef<MapView>(null);
   const [location, setLocation] = useState<LocationObject | null>(null);
 
   async function requestLocationPermissions() {
@@ -46,20 +49,40 @@ export default function HomeScreen({ navigation }: RootTabScreenProps<"Home">) {
     requestLocationPermissions();
   }, []);
 
+  useEffect(() => {
+    watchPositionAsync(
+      {
+        accuracy: LocationAccuracy.Highest,
+        timeInterval: 1000,
+        distanceInterval: 1,
+      },
+      (location) => {
+        setLocation(location);
+        mapRef.current?.animateCamera({
+          pitch: 70,
+          center: location.coords,
+        });
+      }
+    );
+  });
+
   return (
     <Container>
       <StatusBar style="light" />
       <Header />
 
-      <MapView
-        style={{ flex: 1, width: "100%" }}
-        initialRegion={{
-          latitude: location?.coords.latitude || 0,
-          longitude: location?.coords.longitude || 0,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005,
-        }}
-      />
+      {location && (
+        <MapView
+          ref={mapRef}
+          style={{ flex: 1, width: "100%" }}
+          initialRegion={{
+            latitude: location?.coords.latitude || 0,
+            longitude: location?.coords.longitude || 0,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          }}
+        />
+      )}
 
       <ViewList>
         <ViewListTitle>
